@@ -95,9 +95,20 @@ class MapManager: NSObject, ObservableObject {
     
     // MARK: - Pan Gesture
     func updatePan(translation: CGSize) {
+        // Transform translation to account for map rotation
+        let rotationRadians = rotation * .pi / 180.0
+        let cosRotation = cos(rotationRadians)
+        let sinRotation = sin(rotationRadians)
+        
+        // Apply inverse rotation to translation vector
+        let transformedTranslation = CGSize(
+            width: translation.width * cosRotation + translation.height * sinRotation,
+            height: -translation.width * sinRotation + translation.height * cosRotation
+        )
+        
         offset = CGSize(
-            width: lastPanOffset.width + translation.width,
-            height: lastPanOffset.height + translation.height
+            width: lastPanOffset.width + transformedTranslation.width,
+            height: lastPanOffset.height + transformedTranslation.height
         )
     }
     
