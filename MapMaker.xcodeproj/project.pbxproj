@@ -400,7 +400,7 @@
 				DEVELOPMENT_TEAM = XSA4USUHDC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app uses location services to provide compass functionality for map orientation.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app uses location services to provide accurate compass functionality for map orientation and navigation.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -429,7 +429,7 @@
 				DEVELOPMENT_TEAM = XSA4USUHDC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app uses location services to provide compass functionality for map orientation.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app uses location services to provide accurate compass functionality for map orientation and navigation.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
