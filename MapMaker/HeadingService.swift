@@ -9,7 +9,7 @@ import Foundation
 import CoreLocation
 
 protocol HeadingServiceDelegate: AnyObject {
-    func headingService(_ service: HeadingService, didUpdateHeading heading: Double, accuracy: Double)
+    func headingService(_ service: HeadingService, didUpdateHeading heading: Double, accuracy: Double, isUsingTrueNorth: Bool)
     func headingService(_ service: HeadingService, didFailWithError error: Error)
     func headingServiceDidBecomeUnavailable(_ service: HeadingService)
 }
@@ -19,6 +19,8 @@ class HeadingService: NSObject, ObservableObject {
     
     private let locationManager = CLLocationManager()
     private let maxAccuracy: Double = 25.0 // Maximum acceptable accuracy in degrees
+    private var hasLocationFix: Bool = false
+    private var locationUpdateTimer: Timer?
     
     override init() {
         super.init()
@@ -39,10 +41,21 @@ class HeadingService: NSObject, ObservableObject {
         }
         
         locationManager.requestWhenInUseAuthorization()
+        
+        // Start location updates briefly to get True North declination
+        locationManager.startUpdatingLocation()
+        
+        // Stop location updates after 30 seconds to save battery
+        locationUpdateTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { [weak self] _ in
+            self?.locationManager.stopUpdatingLocation()
+        }
     }
     
     func stopUpdatingHeading() {
         locationManager.stopUpdatingHeading()
+        locationManager.stopUpdatingLocation()
+        locationUpdateTimer?.invalidate()
+        locationUpdateTimer = nil
     }
 }
 
@@ -55,10 +68,19 @@ extension HeadingService: CLLocationManagerDelegate {
         }
         
         // Prefer true north, fall back to magnetic
-        let heading = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
+        let isUsingTrueNorth = newHeading.trueHeading >= 0 && hasLocationFix
+        let heading = isUsingTrueNorth ? newHeading.trueHeading : newHeading.magneticHeading
         let accuracy = newHeading.headingAccuracy
         
-        delegate?.headingService(self, didUpdateHeading: heading, accuracy: accuracy)
+        delegate?.headingService(self, didUpdateHeading: heading, accuracy: accuracy, isUsingTrueNorth: isUsingTrueNorth)
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        // We got a location fix, now we can use True North
+        if !hasLocationFix {
+            hasLocationFix = true
+            print("Location fix acquired - True North now available")
+        }
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {

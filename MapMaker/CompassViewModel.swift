@@ -15,6 +15,7 @@ class CompassViewModel: NSObject, ObservableObject {
     @Published var accuracy: Double = 0.0
     @Published var isHeadingAvailable: Bool = true
     @Published var showAccuracyWarning: Bool = false
+    @Published var isUsingTrueNorth: Bool = false
     
     // Smoothing parameters
     private let smoothingFactor: Double = 0.15 // Exponential smoothing factor (150-300ms feel)
@@ -63,17 +64,19 @@ class CompassViewModel: NSObject, ObservableObject {
     
     // MARK: - Debug Info
     var debugInfo: String {
-        return String(format: "Raw: %.1f° | Smoothed: %.1f° | Accuracy: %.1f°", 
-                     rawHeading, smoothedHeading, accuracy)
+        let northType = isUsingTrueNorth ? "True" : "Magnetic"
+        return String(format: "Raw: %.1f° | Smoothed: %.1f° | Accuracy: %.1f° | %@ North", 
+                     rawHeading, smoothedHeading, accuracy, northType)
     }
 }
 
 // MARK: - HeadingServiceDelegate
 extension CompassViewModel: HeadingServiceDelegate {
-    func headingService(_ service: HeadingService, didUpdateHeading heading: Double, accuracy: Double) {
+    func headingService(_ service: HeadingService, didUpdateHeading heading: Double, accuracy: Double, isUsingTrueNorth: Bool) {
         DispatchQueue.main.async {
             self.rawHeading = heading
             self.accuracy = accuracy
+            self.isUsingTrueNorth = isUsingTrueNorth
             
             // Apply smoothing
             if !self.hasInitialHeading {

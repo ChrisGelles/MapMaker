@@ -22,11 +22,14 @@ struct CompassView: View {
                         .frame(width: min(geometry.size.width, geometry.size.height) * 0.8,
                                height: min(geometry.size.width, geometry.size.height) * 0.8)
                     
-                    // Accuracy indicator
+                    // Accuracy and North type indicator
                     VStack {
                         Spacer()
-                        AccuracyIndicator(accuracy: viewModel.accuracy)
-                            .padding(.bottom, 50)
+                        VStack(spacing: 8) {
+                            AccuracyIndicator(accuracy: viewModel.accuracy)
+                            NorthTypeIndicator(isUsingTrueNorth: viewModel.isUsingTrueNorth)
+                        }
+                        .padding(.bottom, 50)
                     }
                     
                     // Debug info (tap to toggle)
@@ -177,6 +180,26 @@ struct AccuracyIndicator: View {
             Text("(±\(String(format: "%.0f", accuracy))°)")
                 .font(.caption)
                 .foregroundColor(.gray)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(Color.black.opacity(0.6))
+        .cornerRadius(20)
+    }
+}
+
+struct NorthTypeIndicator: View {
+    let isUsingTrueNorth: Bool
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: isUsingTrueNorth ? "location.fill" : "location")
+                .foregroundColor(isUsingTrueNorth ? .blue : .orange)
+                .font(.caption)
+            
+            Text(isUsingTrueNorth ? "True North" : "Magnetic North")
+                .font(.caption)
+                .foregroundColor(.white)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
