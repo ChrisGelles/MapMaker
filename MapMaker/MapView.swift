@@ -38,17 +38,18 @@ struct MapView: View {
                                 }
                                 .onEnded { _ in
                                     mapManager.endZoom()
-                                },
-                            
-                            // Rotation gesture (two finger rotation)
-                            RotationGesture()
-                                .onChanged { value in
-                                    mapManager.updateRotation(rotation: value.degrees)
-                                }
-                                .onEnded { _ in
-                                    mapManager.endRotation()
                                 }
                         )
+                    )
+                    .gesture(
+                        // Rotation gesture (two finger rotation)
+                        RotationGesture()
+                            .onChanged { value in
+                                mapManager.updateRotation(rotation: value.degrees)
+                            }
+                            .onEnded { _ in
+                                mapManager.endRotation()
+                            }
                     )
                 
                 // Compass line overlay
