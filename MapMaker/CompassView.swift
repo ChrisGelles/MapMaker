@@ -119,8 +119,8 @@ struct CompassNeedle: Shape {
         
         // Arrowhead
         let arrowSize: CGFloat = 15
-        let arrowAngle1: CGFloat = -90 - 30 // 30 degrees from main line
-        let arrowAngle2: CGFloat = -90 + 30
+        let arrowAngle1: CGFloat = -270 + 30 // 30 degrees from main line
+        let arrowAngle2: CGFloat = -270 - 30
         
         let arrowPoint1 = CGPoint(
             x: endPoint.x + arrowSize * cos(arrowAngle1 * .pi / 180),

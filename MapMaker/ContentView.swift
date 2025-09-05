@@ -53,6 +53,24 @@ struct ContentView: View {
             
             // Compass overlay
             CompassView()
+            
+            // Reset button
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: { mapManager.resetMap() }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                            .frame(width: 50, height: 50)
+                            .background(Color.black.opacity(0.6))
+                            .cornerRadius(25)
+                    }
+                    .padding(.top, 20)
+                    .padding(.trailing, 20)
+                }
+                Spacer()
+            }
         }
         .onAppear {
             mapManager.requestLocationPermission()

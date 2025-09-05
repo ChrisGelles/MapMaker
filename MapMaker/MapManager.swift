@@ -14,6 +14,11 @@ class MapManager: NSObject, ObservableObject {
     @Published var offset: CGSize = .zero
     @Published var rotation: Double = 0.0
     
+    // Bounds checking
+    private let minScale: CGFloat = 0.5
+    private let maxScale: CGFloat = 3.0
+    private let maxOffset: CGFloat = 500.0 // Maximum offset to prevent map from disappearing
+    
     // Compass state
     @Published var isCompassActive: Bool = false
     @Published var compassHeading: Double = 0.0
@@ -95,10 +100,39 @@ class MapManager: NSObject, ObservableObject {
     
     // MARK: - Pan Gesture
     func updatePan(translation: CGSize) {
+        // Check for valid rotation before using it
+        guard rotation.isFinite else {
+            print("Invalid rotation in pan gesture: \(rotation), using 0 degrees")
+            // Use simple pan without rotation transformation
+            let newOffset = CGSize(
+                width: lastPanOffset.width + translation.width,
+                height: lastPanOffset.height + translation.height
+            )
+            offset = CGSize(
+                width: max(-maxOffset, min(maxOffset, newOffset.width)),
+                height: max(-maxOffset, min(maxOffset, newOffset.height))
+            )
+            return
+        }
+        
         // Transform translation to account for map rotation
         let rotationRadians = rotation * .pi / 180.0
         let cosRotation = cos(rotationRadians)
         let sinRotation = sin(rotationRadians)
+        
+        // Check for NaN in trig calculations
+        guard cosRotation.isFinite && sinRotation.isFinite else {
+            print("Invalid trig calculations in pan gesture, using simple pan")
+            let newOffset = CGSize(
+                width: lastPanOffset.width + translation.width,
+                height: lastPanOffset.height + translation.height
+            )
+            offset = CGSize(
+                width: max(-maxOffset, min(maxOffset, newOffset.width)),
+                height: max(-maxOffset, min(maxOffset, newOffset.height))
+            )
+            return
+        }
         
         // Apply inverse rotation to translation vector
         let transformedTranslation = CGSize(
@@ -106,36 +140,122 @@ class MapManager: NSObject, ObservableObject {
             height: -translation.width * sinRotation + translation.height * cosRotation
         )
         
-        offset = CGSize(
+        // Check for NaN in transformed translation
+        guard transformedTranslation.width.isFinite && transformedTranslation.height.isFinite else {
+            print("Invalid transformed translation, using simple pan")
+            let newOffset = CGSize(
+                width: lastPanOffset.width + translation.width,
+                height: lastPanOffset.height + translation.height
+            )
+            offset = CGSize(
+                width: max(-maxOffset, min(maxOffset, newOffset.width)),
+                height: max(-maxOffset, min(maxOffset, newOffset.height))
+            )
+            return
+        }
+        
+        // Calculate new offset with bounds checking
+        let newOffset = CGSize(
             width: lastPanOffset.width + transformedTranslation.width,
             height: lastPanOffset.height + transformedTranslation.height
+        )
+        
+        // Apply bounds checking to prevent map from disappearing
+        offset = CGSize(
+            width: max(-maxOffset, min(maxOffset, newOffset.width)),
+            height: max(-maxOffset, min(maxOffset, newOffset.height))
         )
     }
     
     func endPan() {
         lastPanOffset = offset
+        validateMapState()
     }
     
     // MARK: - Zoom Gesture
     func updateZoom(magnification: CGFloat) {
-        scale = lastScale * magnification
+        let newScale = lastScale * magnification
+        // Apply bounds checking to prevent extreme zoom
+        scale = max(minScale, min(maxScale, newScale))
     }
     
     func endZoom() {
         lastScale = scale
+        validateMapState()
     }
     
     // MARK: - Rotation Gesture
     func updateRotation(rotation: Double) {
-        self.rotation = lastRotation + rotation
+        // Check for NaN or infinite values
+        guard rotation.isFinite else {
+            print("Invalid rotation value detected: \(rotation), ignoring")
+            return
+        }
+        
+        let newRotation = lastRotation + rotation
+        
+        // Check for NaN or infinite values in result
+        guard newRotation.isFinite else {
+            print("Invalid rotation calculation result: \(newRotation), resetting rotation")
+            self.rotation = lastRotation
+            return
+        }
+        
+        self.rotation = newRotation
         // Update map north offset based on rotation (for map orientation only)
-        setMapNorthOffset(rotation)
+        setMapNorthOffset(newRotation)
         print("Map rotation updated: \(self.rotation) degrees, map north offset: \(mapNorthOffset) degrees")
     }
     
     func endRotation() {
+        // Validate rotation before saving
+        guard rotation.isFinite else {
+            print("Invalid rotation at end: \(rotation), resetting to last valid rotation")
+            rotation = lastRotation
+            return
+        }
+        
         lastRotation = rotation
         print("Map rotation ended: \(rotation) degrees, final map north offset: \(mapNorthOffset) degrees")
+    }
+    
+    // MARK: - Validation Functions
+    private func validateMapState() {
+        // Check and fix any NaN values
+        if !scale.isFinite {
+            print("Invalid scale detected: \(scale), resetting to 1.0")
+            scale = 1.0
+            lastScale = 1.0
+        }
+        
+        if !offset.width.isFinite || !offset.height.isFinite {
+            print("Invalid offset detected: \(offset), resetting to zero")
+            offset = .zero
+            lastPanOffset = .zero
+        }
+        
+        if !rotation.isFinite {
+            print("Invalid rotation detected: \(rotation), resetting to 0.0")
+            rotation = 0.0
+            lastRotation = 0.0
+        }
+        
+        if !mapNorthOffset.isFinite {
+            print("Invalid map north offset detected: \(mapNorthOffset), resetting to 0.0")
+            mapNorthOffset = 0.0
+        }
+    }
+    
+    // MARK: - Reset Functions
+    func resetMap() {
+        scale = 1.0
+        offset = .zero
+        rotation = 0.0
+        lastScale = 1.0
+        lastPanOffset = .zero
+        lastRotation = 0.0
+        mapNorthOffset = 0.0
+        print("Map reset to default state")
     }
 }
 
