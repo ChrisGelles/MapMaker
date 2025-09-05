@@ -38,18 +38,17 @@ struct MapView: View {
                                 }
                                 .onEnded { _ in
                                     mapManager.endZoom()
+                                },
+                            
+                            // Rotation gesture (two finger rotation)
+                            RotationGesture()
+                                .onChanged { value in
+                                    mapManager.updateRotation(rotation: value.degrees)
+                                }
+                                .onEnded { _ in
+                                    mapManager.endRotation()
                                 }
                         )
-                    )
-                    .gesture(
-                        // Rotation gesture (two finger rotation)
-                        RotationGesture()
-                            .onChanged { value in
-                                mapManager.updateRotation(rotation: value.degrees)
-                            }
-                            .onEnded { _ in
-                                mapManager.endRotation()
-                            }
                     )
                 
                 // Compass line overlay
@@ -98,17 +97,22 @@ struct CompassButton: View {
 
 struct CompassLineView: View {
     var body: some View {
-        VStack {
-            // North-pointing arrow
-            Triangle()
-                .fill(Color.red)
-                .frame(width: 20, height: 30)
-                .offset(y: -150)
+        GeometryReader { geometry in
+            let screenSize = min(geometry.size.width, geometry.size.height)
+            let arrowDistance = screenSize * 0.3 // Keep arrow within 30% of screen size
             
-            // Line extending down from center
-            Rectangle()
-                .fill(Color.red)
-                .frame(width: 2, height: 300)
+            VStack {
+                // North-pointing arrow
+                Triangle()
+                    .fill(Color.red)
+                    .frame(width: 20, height: 30)
+                    .offset(y: -arrowDistance)
+                
+                // Line extending down from center
+                Rectangle()
+                    .fill(Color.red)
+                    .frame(width: 2, height: arrowDistance * 2)
+            }
         }
     }
 }
