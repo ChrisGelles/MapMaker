@@ -85,12 +85,12 @@ class MapManager: NSObject, ObservableObject {
     // MARK: - Map North Offset
     func setMapNorthOffset(_ offset: Double) {
         mapNorthOffset = offset
-        updateCompassDisplay()
+        // Don't update compass display here - compass should be independent
     }
     
     private func updateCompassDisplay() {
-        // Apply map north offset to the smoothed heading
-        compassHeading = fmod(smoothedHeading + mapNorthOffset + 360.0, 360.0)
+        // Compass heading should only reflect actual device heading, not map rotation
+        compassHeading = smoothedHeading
     }
     
     // MARK: - Pan Gesture
@@ -117,14 +117,14 @@ class MapManager: NSObject, ObservableObject {
     // MARK: - Rotation Gesture
     func updateRotation(rotation: Double) {
         self.rotation = lastRotation + rotation
-        // Update map north offset based on rotation
+        // Update map north offset based on rotation (for map orientation only)
         setMapNorthOffset(rotation)
-        print("Rotation updated: \(self.rotation) degrees, map north offset: \(mapNorthOffset) degrees")
+        print("Map rotation updated: \(self.rotation) degrees, map north offset: \(mapNorthOffset) degrees")
     }
     
     func endRotation() {
         lastRotation = rotation
-        print("Rotation ended: \(rotation) degrees, final map north offset: \(mapNorthOffset) degrees")
+        print("Map rotation ended: \(rotation) degrees, final map north offset: \(mapNorthOffset) degrees")
     }
 }
 
