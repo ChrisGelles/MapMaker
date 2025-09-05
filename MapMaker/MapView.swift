@@ -21,40 +21,41 @@ struct MapView: View {
                     .offset(mapManager.offset)
                     .rotationEffect(.degrees(mapManager.rotation))
                     .gesture(
-                        // Pan gesture
-                        DragGesture()
-                            .onChanged { value in
-                                mapManager.updatePan(translation: value.translation)
-                            }
-                            .onEnded { _ in
-                                mapManager.endPan()
-                            }
-                    )
-                    .gesture(
-                        // Magnification gesture (pinch to zoom)
-                        MagnificationGesture()
-                            .onChanged { value in
-                                mapManager.updateZoom(magnification: value)
-                            }
-                            .onEnded { _ in
-                                mapManager.endZoom()
-                            }
-                    )
-                    .gesture(
-                        // Rotation gesture (two finger rotation)
-                        RotationGesture()
-                            .onChanged { value in
-                                mapManager.updateRotation(rotation: value.degrees)
-                            }
-                            .onEnded { _ in
-                                mapManager.endRotation()
-                            }
+                        SimultaneousGesture(
+                            // Pan gesture
+                            DragGesture()
+                                .onChanged { value in
+                                    mapManager.updatePan(translation: value.translation)
+                                }
+                                .onEnded { _ in
+                                    mapManager.endPan()
+                                },
+                            
+                            // Combined zoom and rotation gesture
+                            SimultaneousGesture(
+                                MagnificationGesture()
+                                    .onChanged { value in
+                                        mapManager.updateZoom(magnification: value)
+                                    }
+                                    .onEnded { _ in
+                                        mapManager.endZoom()
+                                    },
+                                
+                                RotationGesture()
+                                    .onChanged { value in
+                                        mapManager.updateRotation(rotation: value.degrees)
+                                    }
+                                    .onEnded { _ in
+                                        mapManager.endRotation()
+                                    }
+                            )
+                        )
                     )
                 
                 // Compass line overlay
                 if mapManager.isCompassActive {
                     CompassLineView()
-                        .rotationEffect(.degrees(-mapManager.compassHeading))
+                        .rotationEffect(.degrees(mapManager.compassHeading))
                 }
                 
                 // Control buttons on the left side

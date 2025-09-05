@@ -72,10 +72,12 @@ class MapManager: NSObject, ObservableObject {
     // MARK: - Rotation Gesture
     func updateRotation(rotation: Double) {
         self.rotation = lastRotation + rotation
+        print("Rotation updated: \(self.rotation) degrees")
     }
     
     func endRotation() {
         lastRotation = rotation
+        print("Rotation ended: \(rotation) degrees")
     }
 }
 
@@ -86,6 +88,7 @@ extension MapManager: CLLocationManagerDelegate {
         
         // Update compass heading
         compassHeading = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
+        print("Compass heading: \(compassHeading) degrees")
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
