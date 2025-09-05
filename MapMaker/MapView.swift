@@ -21,25 +21,24 @@ struct MapView: View {
                     .offset(mapManager.offset)
                     .rotationEffect(.degrees(mapManager.rotation))
                     .gesture(
-                        SimultaneousGesture(
-                            // Pan gesture
-                            DragGesture()
-                                .onChanged { value in
-                                    mapManager.updatePan(translation: value.translation)
-                                }
-                                .onEnded { _ in
-                                    mapManager.endPan()
-                                },
-                            
-                            // Magnification gesture (pinch to zoom)
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    mapManager.updateZoom(magnification: value)
-                                }
-                                .onEnded { _ in
-                                    mapManager.endZoom()
-                                }
-                        )
+                        // Pan gesture
+                        DragGesture()
+                            .onChanged { value in
+                                mapManager.updatePan(translation: value.translation)
+                            }
+                            .onEnded { _ in
+                                mapManager.endPan()
+                            }
+                    )
+                    .gesture(
+                        // Magnification gesture (pinch to zoom)
+                        MagnificationGesture()
+                            .onChanged { value in
+                                mapManager.updateZoom(magnification: value)
+                            }
+                            .onEnded { _ in
+                                mapManager.endZoom()
+                            }
                     )
                     .gesture(
                         // Rotation gesture (two finger rotation)
@@ -98,22 +97,17 @@ struct CompassButton: View {
 
 struct CompassLineView: View {
     var body: some View {
-        GeometryReader { geometry in
-            let screenSize = min(geometry.size.width, geometry.size.height)
-            let arrowDistance = screenSize * 0.3 // Keep arrow within 30% of screen size
+        VStack {
+            // North-pointing arrow
+            Triangle()
+                .fill(Color.red)
+                .frame(width: 20, height: 30)
+                .offset(y: -150)
             
-            VStack {
-                // North-pointing arrow
-                Triangle()
-                    .fill(Color.red)
-                    .frame(width: 20, height: 30)
-                    .offset(y: -arrowDistance)
-                
-                // Line extending down from center
-                Rectangle()
-                    .fill(Color.red)
-                    .frame(width: 2, height: arrowDistance * 2)
-            }
+            // Line extending down from center
+            Rectangle()
+                .fill(Color.red)
+                .frame(width: 2, height: 300)
         }
     }
 }
