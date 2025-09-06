@@ -10,15 +10,47 @@ import SwiftUI
 struct CompassView: View {
     @StateObject private var viewModel = CompassViewModel()
     @State private var showDebugInfo = false
+    let isCompassLocked: Bool
+    let mapManager: MapManager
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                // Map Image (behind compass)
+                Image("myFirstFloor")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .scaleEffect(mapManager.scale)
+                    .offset(mapManager.offset)
+                    .rotationEffect(.degrees(-viewModel.smoothedHeading + 110.0))
+                    .gesture(
+                        SimultaneousGesture(
+                            // Pan gesture
+                            DragGesture()
+                                .onChanged { value in
+                                    mapManager.updatePan(translation: value.translation)
+                                }
+                                .onEnded { _ in
+                                    mapManager.endPan()
+                                },
+                            
+                            // Zoom gesture only
+                            MagnificationGesture()
+                                .onChanged { value in
+                                    mapManager.updateZoom(magnification: value)
+                                }
+                                .onEnded { _ in
+                                    mapManager.endZoom()
+                                }
+                        )
+                    )
+                
                 if viewModel.isHeadingAvailable {
                     // Compass needle
                     CompassNeedleView(heading: viewModel.smoothedHeading, 
                                     accuracy: viewModel.accuracy,
-                                    showWarning: viewModel.showAccuracyWarning)
+                                    showWarning: viewModel.showAccuracyWarning,
+                                    isCompassLocked: isCompassLocked)
                         .frame(width: min(geometry.size.width, geometry.size.height) * 0.8,
                                height: min(geometry.size.width, geometry.size.height) * 0.8)
                     
@@ -89,13 +121,20 @@ struct CompassNeedleView: View {
     let heading: Double
     let accuracy: Double
     let showWarning: Bool
+    let isCompassLocked: Bool
     
     var body: some View {
         ZStack {
             // Compass needle
             CompassNeedle()
                 .stroke(showWarning ? Color.orange : Color.red, lineWidth: 3)
-                .rotationEffect(.degrees(-heading)) // Negative to point north when heading is 0
+                .rotationEffect(.degrees(-heading)) // Always points to north, rotates with device
+                .onAppear {
+                    print("Compass Arrow - Heading: \(heading)°, RotationEffect: \(-heading)°")
+                }
+                .onChange(of: heading) { newHeading in
+                    print("Compass Arrow - Heading: \(newHeading)°, RotationEffect: \(-newHeading)°")
+                }
             
             // Center dot
             Circle()
@@ -228,5 +267,5 @@ struct DebugPanel: View {
 }
 
 #Preview {
-    CompassView()
+    CompassView(isCompassLocked: false, mapManager: MapManager())
 }

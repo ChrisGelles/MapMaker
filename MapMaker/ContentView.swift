@@ -12,64 +12,46 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            // Map Image
-            Image("myFirstFloor")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .scaleEffect(mapManager.scale)
-                .offset(mapManager.offset)
-                .rotationEffect(.degrees(mapManager.rotation))
-                .gesture(
-                    SimultaneousGesture(
-                        // Pan gesture
-                        DragGesture()
-                            .onChanged { value in
-                                mapManager.updatePan(translation: value.translation)
-                            }
-                            .onEnded { _ in
-                                mapManager.endPan()
-                            },
-                        
-                        // Combined zoom and rotation gesture
-                        SimultaneousGesture(
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    mapManager.updateZoom(magnification: value)
-                                }
-                                .onEnded { _ in
-                                    mapManager.endZoom()
-                                },
-                            
-                            RotationGesture()
-                                .onChanged { value in
-                                    mapManager.updateRotation(rotation: value.degrees)
-                                }
-                                .onEnded { _ in
-                                    mapManager.endRotation()
-                                }
-                        )
-                    )
-                )
+            // Compass view (contains map)
+            CompassView(isCompassLocked: false, mapManager: mapManager)
             
-            // Compass overlay
-            CompassView()
-            
-            // Reset button
+            // Debug rotation values
             VStack {
-                HStack {
-                    Spacer()
-                    Button(action: { mapManager.resetMap() }) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                            .frame(width: 50, height: 50)
-                            .background(Color.black.opacity(0.6))
-                            .cornerRadius(25)
-                    }
-                    .padding(.top, 20)
-                    .padding(.trailing, 20)
-                }
                 Spacer()
+                HStack {
+                    // Map rotation (blue) - bottom left
+                    Text("Map: \(String(format: "%.1f", mapManager.mapRotationDisplay))°")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                        .padding(12)
+                        .background(Color.black.opacity(0.7))
+                        .cornerRadius(8)
+                        .padding(.leading, 20)
+                        .padding(.bottom, 20)
+                    
+                    Spacer()
+                    
+                    // Device angle relative to compass arrow (green) - center bottom
+                    Text("Device: \(String(format: "%.1f", mapManager.compassHeading))°")
+                        .font(.headline)
+                        .foregroundColor(.green)
+                        .padding(12)
+                        .background(Color.black.opacity(0.7))
+                        .cornerRadius(8)
+                        .padding(.bottom, 20)
+                    
+                    Spacer()
+                    
+                    // Compass arrow rotation (red) - bottom right
+                    Text("Arrow: \(String(format: "%.1f", mapManager.compassArrowRotation))°")
+                        .font(.headline)
+                        .foregroundColor(.red)
+                        .padding(12)
+                        .background(Color.black.opacity(0.7))
+                        .cornerRadius(8)
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 20)
+                }
             }
         }
         .onAppear {

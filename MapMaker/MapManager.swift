@@ -12,7 +12,7 @@ class MapManager: NSObject, ObservableObject {
     // Map state
     @Published var scale: CGFloat = 1.0
     @Published var offset: CGSize = .zero
-    @Published var rotation: Double = 0.0
+    @Published var rotation: Double = 110.0
     
     // Bounds checking
     private let minScale: CGFloat = 0.5
@@ -23,6 +23,25 @@ class MapManager: NSObject, ObservableObject {
     @Published var isCompassActive: Bool = false
     @Published var compassHeading: Double = 0.0
     @Published var mapNorthOffset: Double = 0.0 // User-defined map north offset
+    
+    // Compass lock state
+    @Published var isCompassLocked: Bool = false
+    @Published var compassLockOffset: Double = 0.0 // Offset between map and compass when locked
+    @Published var isLockPaused: Bool = false // Paused due to poor accuracy
+    @Published var mapHeadingDelta: Double = 0.0 // Delta between heading and map rotation when locked
+    
+    // MARK: - Computed Properties
+    var compassArrowRotation: Double {
+        // The compass arrow uses .rotationEffect(.degrees(-heading))
+        // So the actual rotation value is the negative of the compass heading
+        return -compassHeading
+    }
+    
+    var mapRotationDisplay: Double {
+        // When locked, map rotation should equal heading minus delta
+        // When unlocked, show actual map rotation
+        return isCompassLocked ? (compassHeading - mapHeadingDelta) : rotation
+    }
     
     // Gesture state
     private var lastPanOffset: CGSize = .zero
@@ -48,6 +67,9 @@ class MapManager: NSObject, ObservableObject {
             locationManager.headingOrientation = .portrait
             locationManager.headingFilter = 2.0 // 2 degree filter to reduce spam
         }
+        
+        // Load saved compass lock state
+        loadCompassLockState()
     }
     
     func requestLocationPermission() {
@@ -96,6 +118,44 @@ class MapManager: NSObject, ObservableObject {
     private func updateCompassDisplay() {
         // Compass heading should only reflect actual device heading, not map rotation
         compassHeading = smoothedHeading
+    }
+    
+    // MARK: - Compass Lock
+    func toggleCompassLock() {
+        if isCompassLocked {
+            // Unlock: stop automatic adjustments
+            isCompassLocked = false
+            isLockPaused = false
+            print("Compass lock disabled")
+        } else {
+            // Lock: capture current heading and map rotation values
+            mapHeadingDelta = compassHeading - rotation
+            isCompassLocked = true
+            isLockPaused = false
+            print("Compass lock enabled - Heading: \(compassHeading)°, Map: \(rotation)°, Delta: \(mapHeadingDelta)°")
+        }
+        saveCompassLockState()
+    }
+    
+    func updateCompassLock() {
+        guard isCompassLocked && !isLockPaused else { return }
+        
+        // Update map rotation to follow heading with captured delta
+        // Map rotation = heading - delta
+        let targetRotation = compassHeading - mapHeadingDelta
+        rotation = targetRotation
+        lastRotation = targetRotation
+        print("Map following heading - Heading: \(compassHeading)°, Delta: \(mapHeadingDelta)°, Map: \(targetRotation)°")
+    }
+    
+    func pauseCompassLock() {
+        isLockPaused = true
+        print("Compass lock paused due to poor accuracy")
+    }
+    
+    func resumeCompassLock() {
+        isLockPaused = false
+        print("Compass lock resumed")
     }
     
     // MARK: - Pan Gesture
@@ -186,6 +246,12 @@ class MapManager: NSObject, ObservableObject {
     
     // MARK: - Rotation Gesture
     func updateRotation(rotation: Double) {
+        // Don't allow manual rotation when compass is locked
+        guard !isCompassLocked else {
+            print("Manual rotation disabled - compass is locked")
+            return
+        }
+        
         // Check for NaN or infinite values
         guard rotation.isFinite else {
             print("Invalid rotation value detected: \(rotation), ignoring")
@@ -246,15 +312,34 @@ class MapManager: NSObject, ObservableObject {
         }
     }
     
+    // MARK: - Persistence
+    private func saveCompassLockState() {
+        UserDefaults.standard.set(isCompassLocked, forKey: "isCompassLocked")
+        UserDefaults.standard.set(compassLockOffset, forKey: "compassLockOffset")
+        UserDefaults.standard.set(mapHeadingDelta, forKey: "mapHeadingDelta")
+    }
+    
+    private func loadCompassLockState() {
+        isCompassLocked = UserDefaults.standard.bool(forKey: "isCompassLocked")
+        compassLockOffset = UserDefaults.standard.double(forKey: "compassLockOffset")
+        mapHeadingDelta = UserDefaults.standard.double(forKey: "mapHeadingDelta")
+        print("Loaded compass lock state: locked=\(isCompassLocked), offset=\(compassLockOffset)°, delta=\(mapHeadingDelta)°")
+    }
+    
     // MARK: - Reset Functions
     func resetMap() {
         scale = 1.0
         offset = .zero
-        rotation = 0.0
+        rotation = 110.0
         lastScale = 1.0
         lastPanOffset = .zero
-        lastRotation = 0.0
+        lastRotation = 110.0
         mapNorthOffset = 0.0
+        isCompassLocked = false
+        isLockPaused = false
+        compassLockOffset = 0.0
+        mapHeadingDelta = 0.0
+        saveCompassLockState()
         print("Map reset to default state")
     }
 }
@@ -267,7 +352,15 @@ extension MapManager: CLLocationManagerDelegate {
         // Check heading accuracy - discard poor readings
         guard newHeading.headingAccuracy >= 0 && newHeading.headingAccuracy <= maxAccuracy else {
             print("Discarding heading with poor accuracy: \(newHeading.headingAccuracy)°")
+            if isCompassLocked {
+                pauseCompassLock()
+            }
             return
+        }
+        
+        // Resume compass lock if it was paused
+        if isCompassLocked && isLockPaused {
+            resumeCompassLock()
         }
         
         // Prefer true north, fall back to magnetic
@@ -279,7 +372,13 @@ extension MapManager: CLLocationManagerDelegate {
         // Update compass display with map north offset
         updateCompassDisplay()
         
+        // Update compass lock if active
+        if isCompassLocked {
+            updateCompassLock()
+        }
+        
         print("Raw heading: \(rawHeading)°, Smoothed: \(smoothedHeading)°, Accuracy: \(newHeading.headingAccuracy)°, Display: \(compassHeading)°")
+        print("Compass Arrow Rotation: \(-compassHeading)°")
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
